@@ -5,22 +5,15 @@ namespace App\Livewire;
 use Livewire\Component;
 use GuzzleHttp\Client;
 use App\Models\Basvuru;
-
-// Meta integration
 use FacebookAds\Api;
 use FacebookAds\Logger\CurlLogger;
-use FacebookAds\Object\ServerSide\Content;
-use FacebookAds\Object\ServerSide\CustomData;
-use FacebookAds\Object\ServerSide\DeliveryCategory;
 use FacebookAds\Object\ServerSide\Event;
 use FacebookAds\Object\ServerSide\EventRequest;
-use FacebookAds\Object\ServerSide\Gender;
 use FacebookAds\Object\ServerSide\UserData;
 
 class UserForm extends Component
 {
     public $ad;
-    public $email;
     public $telefon;
     public $dogumTarihi;
     public $musteriMi;
@@ -112,6 +105,7 @@ class UserForm extends Component
 
             try {
                 $this->sendTelegramMessage();
+                $this->sendMetaLeadEvent();
             } catch (\Exception $e) {
                 session()->flash(
                     "message",
@@ -157,37 +151,36 @@ class UserForm extends Component
         return $digit11 == $tcKimlik[10];
     }
 
-    private function sendMetaEvent(): void
+    private function sendMetaLeadEvent(): void
     {
         $access_token = env("META_ACCESS_TOKEN");
         $pixel_id = env("META_PIXEL_ID");
 
-        // Initialize
         Api::init(null, null, $access_token);
         $api = Api::instance();
         $api->setLogger(new CurlLogger());
 
-        $events = [];
+        $event_time = time();
+        $test_event_code = "TEST85838";
+        $client_user_agent = request()->userAgent();
+        $client_ip_address = request()->ip();
+        $formatted_birthdate = date("Ymd", strtotime($this->dogumTarihi));
 
-        $user_data_0 = (new UserData())
-            ->setEmails([
-                "7b17fb0bd173f625b58636fb796407c22b3d16fc78302d79f0fd30c2fc2fc068",
-            ])
-            ->setPhones([]);
+        $user_data = (new UserData())
+            ->setPhones([$this->telefon])
+            ->setClientUserAgent($client_user_agent)
+            ->setClientIpAddress($client_ip_address)
+            ->setDateOfBirth($formatted_birthdate);
 
-        $custom_data_0 = (new CustomData())
-            ->setValue(142.52)
-            ->setCurrency("USD");
-
-        $event_0 = (new Event())
-            ->setEventName("Purchase")
-            ->setEventTime(1730119129)
-            ->setUserData($user_data_0)
-            ->setCustomData($custom_data_0)
+        $event = (new Event())
+            ->setEventName("Lead")
+            ->setEventTime($event_time)
+            ->setUserData($user_data)
             ->setActionSource("website");
-        array_push($events, $event_0);
 
-        $request = (new EventRequest($pixel_id))->setEvents($events);
+        $request = (new EventRequest($pixel_id))
+            ->setEvents([$event])
+            ->setTestEventCode($test_event_code);
 
         $request->execute();
     }
