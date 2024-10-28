@@ -162,7 +162,6 @@ class UserForm extends Component
 
         // Customer data
         $event_time = time();
-        $test_event_code = "TEST85838";
         $event_id = uniqid("", true);
         $client_user_agent = request()->userAgent();
         $client_ip_address = request()->ip();
@@ -191,10 +190,7 @@ class UserForm extends Component
             ->setEventSourceUrl($event_source_url)
             ->setEventId($event_id);
 
-        $request = (new EventRequest($pixel_id))
-            ->setEvents([$event])
-            ->setTestEventCode($test_event_code);
-
+        $request = (new EventRequest($pixel_id))->setEvents([$event]);
         $request->execute();
     }
 
