@@ -160,23 +160,36 @@ class UserForm extends Component
         $api = Api::instance();
         $api->setLogger(new CurlLogger());
 
+        // Customer data
         $event_time = time();
         $test_event_code = "TEST85838";
+        $event_id = uniqid("", true);
         $client_user_agent = request()->userAgent();
         $client_ip_address = request()->ip();
         $formatted_birthdate = date("Ymd", strtotime($this->dogumTarihi));
+
+        // Source URL
+        $event_source_url = url()->current();
+
+        // fbc ve fbp değerlerini çerezlerden al
+        $fbc = request()->cookie("_fbc", null);
+        $fbp = request()->cookie("_fbp", null);
 
         $user_data = (new UserData())
             ->setPhones([$this->telefon])
             ->setClientUserAgent($client_user_agent)
             ->setClientIpAddress($client_ip_address)
-            ->setDateOfBirth($formatted_birthdate);
+            ->setDateOfBirth($formatted_birthdate)
+            ->setFbc($fbc)
+            ->setFbp($fbp);
 
         $event = (new Event())
             ->setEventName("Lead")
             ->setEventTime($event_time)
             ->setUserData($user_data)
-            ->setActionSource("website");
+            ->setActionSource("website")
+            ->setEventSourceUrl($event_source_url)
+            ->setEventId($event_id);
 
         $request = (new EventRequest($pixel_id))
             ->setEvents([$event])
