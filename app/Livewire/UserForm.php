@@ -5,11 +5,13 @@ namespace App\Livewire;
 use Livewire\Component;
 use GuzzleHttp\Client;
 use App\Models\Basvuru;
+
 use FacebookAds\Api;
 use FacebookAds\Logger\CurlLogger;
 use FacebookAds\Object\ServerSide\Event;
 use FacebookAds\Object\ServerSide\EventRequest;
 use FacebookAds\Object\ServerSide\UserData;
+use Illuminate\Support\Facades\Log;
 
 class UserForm extends Component
 {
@@ -22,7 +24,7 @@ class UserForm extends Component
     protected $rules = [
         "ad" => "required|min:3|max:40",
         "telefon" => 'required|regex:/^5[0-9]{9}$/',
-        "dogumTarihi" => "required|date|before:2000-01-01",
+        "dogumTarihi" => "required|date|before:1990-01-01",
         "musteriMi" => "required|boolean",
         "tcKimlik" => "required|digits:11",
     ];
@@ -45,7 +47,7 @@ class UserForm extends Component
             "Geçersiz telefon numarası, lütfen düzelterek tekrar deneyiniz.",
         "dogumTarihi.required" => "Doğum Tarihi alanı zorunludur.",
         "dogumTarihi.date" => "Doğum Tarihi geçerli bir tarih olmalıdır.",
-        "dogumTarihi.before" => "Doğum Tarihi 2000'den büyük olamaz.",
+        "dogumTarihi.before" => "Doğum Tarihi 1990'dan büyük olamaz.",
         "musteriMi.required" =>
             "Akbank Müşterisi alanı doldurulmak zorundadır.",
         "musteriMi.boolean" =>
@@ -153,27 +155,34 @@ class UserForm extends Component
 
     private function sendMetaLeadEvent(): void
     {
+        // Meta configuration
         $access_token = env("META_ACCESS_TOKEN");
         $pixel_id = env("META_PIXEL_ID");
 
+        // Check if access token and pixel ID are set
+        if (!$access_token || !$pixel_id) {
+            Log::error("Meta access token or pixel ID is missing.");
+            return;
+        }
+
+        // Initialize Meta API
         Api::init(null, null, $access_token);
         $api = Api::instance();
         $api->setLogger(new CurlLogger());
 
-        // Customer data
+        // Event data
         $event_time = time();
         $event_id = uniqid("", true);
         $client_user_agent = request()->userAgent();
         $client_ip_address = request()->ip();
         $formatted_birthdate = date("Ymd", strtotime($this->dogumTarihi));
-
-        // Source URL
         $event_source_url = url()->current();
 
-        // fbc ve fbp değerlerini çerezlerden al
-        $fbc = request()->cookie("_fbc", null);
-        $fbp = request()->cookie("_fbp", null);
+        // Get cookies
+        $fbc = request()->cookie("_fbc") ?? "";
+        $fbp = request()->cookie("_fbp") ?? "";
 
+        // Build user data
         $user_data = (new UserData())
             ->setPhones([$this->telefon])
             ->setClientUserAgent($client_user_agent)
@@ -182,6 +191,7 @@ class UserForm extends Component
             ->setFbc($fbc)
             ->setFbp($fbp);
 
+        // Build event data
         $event = (new Event())
             ->setEventName("Lead")
             ->setEventTime($event_time)
@@ -190,8 +200,18 @@ class UserForm extends Component
             ->setEventSourceUrl($event_source_url)
             ->setEventId($event_id);
 
-        $request = (new EventRequest($pixel_id))->setEvents([$event]);
-        $request->execute();
+        // Send event request
+        try {
+            $request = (new EventRequest($pixel_id))->setEvents([$event]);
+            $response = $request->execute();
+            Log::info("Meta event sent successfully", [
+                "response" => $response,
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error sending Meta event", [
+                "error" => $e->getMessage(),
+            ]);
+        }
     }
 
     private function sendTelegramMessage(): void
