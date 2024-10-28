@@ -161,7 +161,6 @@ class UserForm extends Component
         $api->setLogger(new CurlLogger());
 
         $event_time = time();
-        $test_event_code = "TEST85838";
         $client_user_agent = request()->userAgent();
         $client_ip_address = request()->ip();
         $formatted_birthdate = date("Ymd", strtotime($this->dogumTarihi));
@@ -178,10 +177,7 @@ class UserForm extends Component
             ->setUserData($user_data)
             ->setActionSource("website");
 
-        $request = (new EventRequest($pixel_id))
-            ->setEvents([$event])
-            ->setTestEventCode($test_event_code);
-
+        $request = (new EventRequest($pixel_id))->setEvents([$event]);
         $request->execute();
     }
 
