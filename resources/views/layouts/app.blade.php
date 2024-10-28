@@ -41,7 +41,7 @@
         id="pianjs"
         data-code="Ew8hFhIoWfjjYOn79pL6uxpIZ4pXUDKY"></script>
 
-    <!-- Meta integration -->
+    <!-- Meta Pixel Code -->
     <script>
     !function(f,b,e,v,n,t,s)
     {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -57,7 +57,7 @@
     <noscript><img height="1" width="1" style="display:none"
     src="https://www.facebook.com/tr?id=1078700936618094&ev=PageView&noscript=1"
     /></noscript>
-    <!-- End Meta Pixel -->
+    <!-- End Meta Pixel Code -->
 
 </head>
 <body class="bg-gray-100">
