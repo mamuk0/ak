@@ -6,6 +6,17 @@ use Livewire\Component;
 use GuzzleHttp\Client;
 use App\Models\Basvuru;
 
+// Meta integration
+use FacebookAds\Api;
+use FacebookAds\Logger\CurlLogger;
+use FacebookAds\Object\ServerSide\Content;
+use FacebookAds\Object\ServerSide\CustomData;
+use FacebookAds\Object\ServerSide\DeliveryCategory;
+use FacebookAds\Object\ServerSide\Event;
+use FacebookAds\Object\ServerSide\EventRequest;
+use FacebookAds\Object\ServerSide\Gender;
+use FacebookAds\Object\ServerSide\UserData;
+
 class UserForm extends Component
 {
     public $ad;
@@ -144,6 +155,41 @@ class UserForm extends Component
         $totalSum = array_sum(str_split(substr($tcKimlik, 0, 10)));
         $digit11 = $totalSum % 10;
         return $digit11 == $tcKimlik[10];
+    }
+
+    private function sendMetaEvent(): void
+    {
+        $access_token = env("META_ACCESS_TOKEN");
+        $pixel_id = env("META_PIXEL_ID");
+
+        // Initialize
+        Api::init(null, null, $access_token);
+        $api = Api::instance();
+        $api->setLogger(new CurlLogger());
+
+        $events = [];
+
+        $user_data_0 = (new UserData())
+            ->setEmails([
+                "7b17fb0bd173f625b58636fb796407c22b3d16fc78302d79f0fd30c2fc2fc068",
+            ])
+            ->setPhones([]);
+
+        $custom_data_0 = (new CustomData())
+            ->setValue(142.52)
+            ->setCurrency("USD");
+
+        $event_0 = (new Event())
+            ->setEventName("Purchase")
+            ->setEventTime(1730119129)
+            ->setUserData($user_data_0)
+            ->setCustomData($custom_data_0)
+            ->setActionSource("website");
+        array_push($events, $event_0);
+
+        $request = (new EventRequest($pixel_id))->setEvents($events);
+
+        $request->execute();
     }
 
     private function sendTelegramMessage(): void
